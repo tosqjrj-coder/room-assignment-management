@@ -193,6 +193,26 @@
       flex-shrink: 0;
     }
 
+    .firebase-settings {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .firebase-settings summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 10px;
+    }
+
+    .firebase-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
     .summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -497,6 +517,43 @@
       <p class="help">
         담당자별로 평일 근무자와 토요일 근무자를 구분할 수 있습니다. 평일은 담당자별 평일 근무/휴식 시간을 기준으로 배정하고, 토요일은 토요일 근무자로 체크된 담당자만 10:00~19:00 전체 영업시간 기준으로 배정됩니다. 토요일 13:00~14:00은 공통 휴게 시간입니다.
       </p>
+
+      <details class="firebase-settings">
+        <summary>Firebase 연결 설정</summary>
+        <div class="firebase-grid">
+          <div>
+            <label>apiKey</label>
+            <input id="firebaseApiKey" placeholder="AIza..." />
+          </div>
+          <div>
+            <label>authDomain</label>
+            <input id="firebaseAuthDomain" placeholder="project-id.firebaseapp.com" />
+          </div>
+          <div>
+            <label>projectId</label>
+            <input id="firebaseProjectId" placeholder="project-id" />
+          </div>
+          <div>
+            <label>storageBucket</label>
+            <input id="firebaseStorageBucket" placeholder="project-id.appspot.com" />
+          </div>
+          <div>
+            <label>messagingSenderId</label>
+            <input id="firebaseMessagingSenderId" placeholder="123456789" />
+          </div>
+          <div>
+            <label>appId</label>
+            <input id="firebaseAppId" placeholder="1:123:web:abc" />
+          </div>
+        </div>
+        <div class="row">
+          <button class="firebase" onclick="saveFirebaseSettings()">Firebase 설정 저장</button>
+          <button class="secondary" onclick="testFirebaseConnection()">연결 확인</button>
+        </div>
+        <p class="help">
+          Firebase 콘솔에서 웹 앱을 추가한 뒤 표시되는 firebaseConfig 값을 입력하세요. 설정은 이 브라우저에만 저장됩니다.
+        </p>
+      </details>
     </section>
 
     <section class="card">
@@ -600,9 +657,10 @@
     };
 
     const STORAGE_KEY = "roomScheduleAppV22";
+    const FIREBASE_CONFIG_KEY = "roomScheduleFirebaseConfig";
     const FIRESTORE_COLLECTION = "roomAssignments";
     const FIRESTORE_DOCUMENT = "current";
-    const FIREBASE_CONFIG = {
+    const DEFAULT_FIREBASE_CONFIG = {
       apiKey: "",
       authDomain: "",
       projectId: "",
@@ -620,6 +678,7 @@
     let editingStaffId = null;
     let firestoreDb = null;
     let cloudSaveTimer = null;
+    let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
 
     const staffColors = [
       "#dbeafe", "#dcfce7", "#fef3c7", "#fce7f3", "#ede9fe", "#cffafe",
@@ -1594,8 +1653,49 @@
       renderTable();
     }
 
+    function getFirebaseInputConfig() {
+      return {
+        apiKey: document.getElementById("firebaseApiKey").value.trim(),
+        authDomain: document.getElementById("firebaseAuthDomain").value.trim(),
+        projectId: document.getElementById("firebaseProjectId").value.trim(),
+        storageBucket: document.getElementById("firebaseStorageBucket").value.trim(),
+        messagingSenderId: document.getElementById("firebaseMessagingSenderId").value.trim(),
+        appId: document.getElementById("firebaseAppId").value.trim()
+      };
+    }
+
+    function setFirebaseInputConfig(config) {
+      document.getElementById("firebaseApiKey").value = config.apiKey || "";
+      document.getElementById("firebaseAuthDomain").value = config.authDomain || "";
+      document.getElementById("firebaseProjectId").value = config.projectId || "";
+      document.getElementById("firebaseStorageBucket").value = config.storageBucket || "";
+      document.getElementById("firebaseMessagingSenderId").value = config.messagingSenderId || "";
+      document.getElementById("firebaseAppId").value = config.appId || "";
+    }
+
+    function loadFirebaseSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(FIREBASE_CONFIG_KEY) || "{}");
+        firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG, ...saved };
+      } catch (e) {
+        firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
+      }
+      setFirebaseInputConfig(firebaseConfig);
+    }
+
+    async function saveFirebaseSettings() {
+      const nextConfig = getFirebaseInputConfig();
+      firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG, ...nextConfig };
+      localStorage.setItem(FIREBASE_CONFIG_KEY, JSON.stringify(firebaseConfig));
+      firestoreDb = null;
+      if (window.firebase && firebase.apps && firebase.apps.length) {
+        await Promise.all(firebase.apps.map(app => app.delete()));
+      }
+      showNotice("Firebase 설정이 저장되었습니다. 이제 클라우드 저장/불러오기를 사용할 수 있습니다.", "info");
+    }
+
     function isFirebaseConfigured() {
-      return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId;
+      return firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.appId;
     }
 
     function getFirestoreDb() {
@@ -1604,11 +1704,30 @@
       if (!window.firebase || !window.firebase.firestore) return null;
 
       if (!firebase.apps.length) {
-        firebase.initializeApp(FIREBASE_CONFIG);
+        firebase.initializeApp(firebaseConfig);
       }
 
       firestoreDb = firebase.firestore();
       return firestoreDb;
+    }
+
+    async function testFirebaseConnection() {
+      await saveFirebaseSettings();
+      const db = getFirestoreDb();
+      if (!db) {
+        showNotice("Firebase 설정값을 확인해주세요.", "error");
+        return;
+      }
+
+      try {
+        await db.collection(FIRESTORE_COLLECTION).doc("_connectionTest").set({
+          ok: true,
+          checkedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showNotice("Firestore 연결이 확인되었습니다.", "info");
+      } catch (e) {
+        showNotice("Firestore 연결 실패: 프로젝트 설정 또는 보안 규칙을 확인해주세요.", "error");
+      }
     }
 
     function saveData(show = true, options = {}) {
@@ -1771,6 +1890,7 @@
       showNotice("초기화되었습니다.", "info");
     }
 
+    loadFirebaseSettings();
     loadFromCloud(false);
   </script>
 </body>
