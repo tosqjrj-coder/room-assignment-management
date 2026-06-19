@@ -213,6 +213,18 @@
       margin-bottom: 10px;
     }
 
+    .firebase-paste {
+      width: 100%;
+      min-height: 110px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 13px;
+      resize: vertical;
+      margin-bottom: 10px;
+    }
+
     .summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -520,6 +532,18 @@
 
       <details class="firebase-settings">
         <summary>Firebase 연결 설정</summary>
+        <label>firebaseConfig 전체 붙여넣기</label>
+        <textarea id="firebaseConfigPaste" class="firebase-paste" placeholder='const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "project-id.firebaseapp.com",
+  projectId: "project-id",
+  storageBucket: "project-id.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123:web:abc"
+};'></textarea>
+        <div class="row" style="margin-bottom:10px;">
+          <button class="secondary" onclick="fillFirebaseConfigFromPaste()">자동 입력</button>
+        </div>
         <div class="firebase-grid">
           <div>
             <label>apiKey</label>
@@ -1671,6 +1695,35 @@
       document.getElementById("firebaseStorageBucket").value = config.storageBucket || "";
       document.getElementById("firebaseMessagingSenderId").value = config.messagingSenderId || "";
       document.getElementById("firebaseAppId").value = config.appId || "";
+    }
+
+    function parseFirebaseConfigText(text) {
+      const config = {};
+      const keys = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId"];
+
+      keys.forEach(key => {
+        const match = text.match(new RegExp(`${key}\\s*:\\s*["']([^"']+)["']`));
+        if (match) config[key] = match[1];
+      });
+
+      return config;
+    }
+
+    function fillFirebaseConfigFromPaste() {
+      const text = document.getElementById("firebaseConfigPaste").value.trim();
+      if (!text) {
+        showNotice("firebaseConfig 코드를 붙여넣어주세요.", "error");
+        return;
+      }
+
+      const parsed = parseFirebaseConfigText(text);
+      if (!parsed.apiKey || !parsed.projectId || !parsed.appId) {
+        showNotice("firebaseConfig 값을 읽지 못했습니다. Firebase 콘솔의 config 코드 전체를 붙여넣어주세요.", "error");
+        return;
+      }
+
+      setFirebaseInputConfig({ ...getFirebaseInputConfig(), ...parsed });
+      showNotice("Firebase 설정값을 자동 입력했습니다. Firebase 설정 저장을 눌러주세요.", "info");
     }
 
     function loadFirebaseSettings() {
