@@ -1814,7 +1814,9 @@
     }
 
     async function saveToCloud(show = true, options = {}) {
+      if (show) showNotice("클라우드 저장을 시작합니다. 비밀번호를 입력해주세요.", "info");
       if (!requestCloudAccess()) return;
+      if (show) showNotice("클라우드에 저장 중입니다...", "info");
 
       const db = getFirestoreDb();
       if (!db) {
@@ -1834,7 +1836,9 @@
     }
 
     async function loadFromCloud(show = false) {
+      if (show) showNotice("클라우드 불러오기를 시작합니다. 비밀번호를 입력해주세요.", "info");
       if (show && !requestCloudAccess()) return;
+      if (show) showNotice("클라우드에서 불러오는 중입니다...", "info");
       if (!show) {
         loadData(false);
         return;
