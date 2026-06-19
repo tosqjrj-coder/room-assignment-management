@@ -542,7 +542,7 @@
   appId: "1:123:web:abc"
 };'></textarea>
         <div class="row" style="margin-bottom:10px;">
-          <button class="secondary" onclick="fillFirebaseConfigFromPaste()">자동 입력</button>
+          <button class="secondary" onclick="fillFirebaseConfigFromPaste()">자동 입력 및 연결</button>
         </div>
         <div class="firebase-grid">
           <div>
@@ -1701,7 +1701,7 @@
 
     function parseFirebaseConfigText(text) {
       const config = {};
-      const keys = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId"];
+      const keys = ["apiKey", "authDomain", "projectId", "storageBucket", "messagingSenderId", "appId", "measurementId"];
 
       keys.forEach(key => {
         const match = text.match(new RegExp(`${key}\\s*:\\s*["']([^"']+)["']`));
@@ -1711,21 +1711,33 @@
       return config;
     }
 
-    function fillFirebaseConfigFromPaste() {
+    async function fillFirebaseConfigFromPaste() {
+      showNotice("Firebase 자동 입력을 시작합니다. 비밀번호를 입력해주세요.", "info");
+      if (!requestCloudAccess()) return;
+
       const text = document.getElementById("firebaseConfigPaste").value.trim();
-      if (!text) {
-        showNotice("firebaseConfig 코드를 붙여넣어주세요.", "error");
-        return;
-      }
+      const parsed = text ? parseFirebaseConfigText(text) : {};
+      const nextConfig = { ...DEFAULT_FIREBASE_CONFIG, ...parsed };
 
-      const parsed = parseFirebaseConfigText(text);
+      document.getElementById("firebaseConfigPaste").value = `const firebaseConfig = {
+  apiKey: "${nextConfig.apiKey}",
+  authDomain: "${nextConfig.authDomain}",
+  projectId: "${nextConfig.projectId}",
+  storageBucket: "${nextConfig.storageBucket}",
+  messagingSenderId: "${nextConfig.messagingSenderId}",
+  appId: "${nextConfig.appId}",
+  measurementId: "${nextConfig.measurementId || ""}"
+};`;
+
       if (!parsed.apiKey || !parsed.projectId || !parsed.appId) {
-        showNotice("firebaseConfig 값을 읽지 못했습니다. Firebase 콘솔의 config 코드 전체를 붙여넣어주세요.", "error");
-        return;
+        showNotice("기본 Firebase 설정값을 자동 입력했습니다. 연결을 확인하는 중입니다...", "info");
+      } else {
+        showNotice("붙여넣은 Firebase 설정값을 자동 입력했습니다. 연결을 확인하는 중입니다...", "info");
       }
 
-      setFirebaseInputConfig({ ...getFirebaseInputConfig(), ...parsed });
-      showNotice("Firebase 설정값을 자동 입력했습니다. Firebase 설정 저장을 눌러주세요.", "info");
+      setFirebaseInputConfig(nextConfig);
+      await saveFirebaseSettings();
+      await verifyFirebaseConnection();
     }
 
     function requestCloudAccess() {
@@ -1784,6 +1796,10 @@
       if (!requestCloudAccess()) return;
 
       await saveFirebaseSettings();
+      await verifyFirebaseConnection();
+    }
+
+    async function verifyFirebaseConnection() {
       const db = getFirestoreDb();
       if (!db) {
         showNotice("Firebase 설정값을 확인해주세요.", "error");
