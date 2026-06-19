@@ -1743,8 +1743,6 @@
     }
 
     function loadFirebaseSettings() {
-      localStorage.removeItem("roomScheduleCloudUnlocked");
-
       try {
         const saved = JSON.parse(localStorage.getItem(FIREBASE_CONFIG_KEY) || "{}");
         firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG, ...saved };
