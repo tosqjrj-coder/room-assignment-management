@@ -682,15 +682,18 @@
 
     const STORAGE_KEY = "roomScheduleAppV22";
     const FIREBASE_CONFIG_KEY = "roomScheduleFirebaseConfig";
+    const CLOUD_UNLOCK_KEY = "roomScheduleCloudUnlocked";
+    const CLOUD_PASSWORD = "room2026";
     const FIRESTORE_COLLECTION = "roomAssignments";
     const FIRESTORE_DOCUMENT = "current";
     const DEFAULT_FIREBASE_CONFIG = {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
+      apiKey: "AIzaSyB0fDEHLZlMYc4rxU4RQTdbUMNCHvcmzOE",
+      authDomain: "task-assignment-8dcee.firebaseapp.com",
+      projectId: "task-assignment-8dcee",
+      storageBucket: "task-assignment-8dcee.firebasestorage.app",
+      messagingSenderId: "539684009478",
+      appId: "1:539684009478:web:494171114272baa479b587",
+      measurementId: "G-06FWCSC884"
     };
 
     let activeMode = "weekday";
@@ -1726,6 +1729,25 @@
       showNotice("Firebase 설정값을 자동 입력했습니다. Firebase 설정 저장을 눌러주세요.", "info");
     }
 
+    function hasCloudAccess() {
+      return !CLOUD_PASSWORD || localStorage.getItem(CLOUD_UNLOCK_KEY) === CLOUD_PASSWORD;
+    }
+
+    function requestCloudAccess() {
+      if (hasCloudAccess()) return true;
+
+      const input = prompt("클라우드 저장/불러오기 비밀번호를 입력하세요.");
+      if (input === CLOUD_PASSWORD) {
+        localStorage.setItem(CLOUD_UNLOCK_KEY, CLOUD_PASSWORD);
+        return true;
+      }
+
+      if (input !== null) {
+        showNotice("비밀번호가 올바르지 않습니다.", "error");
+      }
+      return false;
+    }
+
     function loadFirebaseSettings() {
       try {
         const saved = JSON.parse(localStorage.getItem(FIREBASE_CONFIG_KEY) || "{}");
@@ -1765,6 +1787,8 @@
     }
 
     async function testFirebaseConnection() {
+      if (!requestCloudAccess()) return;
+
       await saveFirebaseSettings();
       const db = getFirestoreDb();
       if (!db) {
@@ -1796,12 +1820,14 @@
     }
 
     function queueCloudSave() {
-      if (!getFirestoreDb()) return;
+      if (!hasCloudAccess() || !getFirestoreDb()) return;
       clearTimeout(cloudSaveTimer);
       cloudSaveTimer = setTimeout(() => saveToCloud(false), 500);
     }
 
     async function saveToCloud(show = true) {
+      if (!requestCloudAccess()) return;
+
       const db = getFirestoreDb();
       if (!db) {
         showNotice("Firebase 설정값을 먼저 입력해야 클라우드 저장이 가능합니다.", "error");
@@ -1820,6 +1846,12 @@
     }
 
     async function loadFromCloud(show = false) {
+      if (show && !requestCloudAccess()) return;
+      if (!show && !hasCloudAccess()) {
+        loadData(false);
+        return;
+      }
+
       const db = getFirestoreDb();
       if (!db) {
         loadData(show);
