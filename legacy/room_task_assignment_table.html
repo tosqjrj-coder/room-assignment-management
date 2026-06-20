@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>방 업무 배정표</title>
+  <title>배정표</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -194,6 +194,7 @@
     }
 
     .firebase-settings {
+      display: none;
       margin-top: 12px;
       padding-top: 12px;
       border-top: 1px solid var(--line);
@@ -337,16 +338,24 @@
     }
 
     .table-wrap {
-      overflow: auto;
       border: 1px solid var(--line);
       border-radius: 12px;
+      max-width: 100%;
+      max-height: min(70vh, 620px);
+      overflow: auto;
+      position: relative;
     }
 
     table {
-      border-collapse: collapse;
-      width: 100%;
-      min-width: 1050px;
+      border-collapse: separate;
+      border-spacing: 0;
+      width: max-content;
       background: white;
+      position: relative;
+    }
+
+    #scheduleTable {
+      min-width: 1376px;
     }
 
     th, td {
@@ -355,27 +364,66 @@
       padding: 8px;
       text-align: center;
       font-size: 13px;
+      height: 51px;
     }
 
     th {
       background: #f3f4f6;
       position: sticky;
       top: 0;
-      z-index: 2;
+      z-index: 6;
+      height: 38px;
     }
 
-    th:first-child, td:first-child {
-      position: sticky;
-      left: 0;
-      z-index: 1;
-      background: #fff;
+    .time-col {
+      width: 130px;
       min-width: 130px;
-      font-weight: 600;
+      max-width: 130px;
     }
 
-    th:first-child {
-      z-index: 3;
+    .delete-col {
+      width: 76px;
+      min-width: 76px;
+      max-width: 76px;
+    }
+
+    .room-col {
+      width: 130px;
+      min-width: 130px;
+      max-width: 130px;
+    }
+
+    .freeze-col {
+      position: sticky;
+      background: white;
+      z-index: 4;
+      font-weight: 600;
+      box-shadow: 1px 0 0 var(--line);
+    }
+
+    th.freeze-col {
+      z-index: 8;
       background: #f3f4f6;
+    }
+
+    td.freeze-col.assigned {
+      z-index: 5;
+    }
+
+    .freeze-time { left: 0; }
+    .freeze-delete { left: 130px; }
+    .freeze-room-1 { left: 206px; }
+    .freeze-room-2 { left: 336px; }
+    .freeze-room-3 { left: 466px; }
+    .freeze-room-4-1 { left: 596px; }
+    .freeze-room-4-2 { left: 726px; }
+    .freeze-room-5 { left: 856px; }
+    .freeze-room-6 { left: 986px; }
+    .freeze-room-junior { left: 1116px; }
+    .freeze-room-head { left: 1246px; }
+
+    .freeze-last {
+      box-shadow: 1px 0 0 var(--line), 8px 0 12px rgba(15, 23, 42, 0.08);
     }
 
     td select {
@@ -452,6 +500,64 @@
       color: var(--blue-text);
     }
 
+    body.auth-locked > header,
+    body.auth-locked > main {
+      display: none;
+    }
+
+    .auth-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(15, 118, 110, 0.16), transparent 32%),
+        linear-gradient(135deg, #f8fafc, #eef2f7);
+    }
+
+    .auth-card {
+      width: min(100%, 380px);
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 22px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    }
+
+    .auth-card h1 {
+      margin: 0 0 8px;
+      font-size: 21px;
+      color: var(--dark);
+    }
+
+    .auth-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .auth-card input,
+    .auth-card button {
+      width: 100%;
+    }
+
+    .auth-card button {
+      margin-top: 10px;
+      background: #0f766e;
+    }
+
+    .auth-message {
+      min-height: 18px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--bad-text);
+    }
+
+    .auth-message.info {
+      color: var(--blue-text);
+    }
+
     .help {
       color: var(--muted);
       font-size: 13px;
@@ -460,6 +566,7 @@
     }
 
     @media print {
+      .auth-screen,
       header, .controls, .staff-card, .notice, button, .help, .legend, .rule-box, .tabs { display: none !important; }
       main { padding: 0; max-width: none; }
       .card { box-shadow: none; border: 0; }
@@ -476,9 +583,20 @@
   </style>
 </head>
 
-<body>
+<body class="auth-locked">
+  <section id="authScreen" class="auth-screen" aria-label="비밀번호 확인">
+    <form id="authForm" class="auth-card">
+      <h1>배정표</h1>
+      <p>비밀번호를 입력하면 업무표를 열고 Firebase 클라우드 데이터에 자동으로 연결합니다.</p>
+      <label for="authPassword">비밀번호</label>
+      <input id="authPassword" type="password" autocomplete="current-password" autofocus />
+      <button id="authSubmit" type="submit">확인</button>
+      <div id="authMessage" class="auth-message" role="status"></div>
+    </form>
+  </section>
+
   <header>
-    <h1>방 업무 배정표</h1>
+    <h1>배정표</h1>
     <p>평일 화·수·목·금 / 토요일 탭 분리 · 4-1/4-2방 분리 · 담당자 중복 방지 · 포인트 합산</p>
   </header>
 
@@ -655,7 +773,9 @@
       { id: "4-1", name: "4-1방", parity: "even", autoAssign: true },
       { id: "4-2", name: "4-2방", parity: "even", autoAssign: false },
       { id: "5", name: "5번방", parity: "odd", autoAssign: true },
-      { id: "6", name: "6번방", parity: "even", autoAssign: true }
+      { id: "6", name: "6번방", parity: "even", autoAssign: true },
+      { id: "junior", name: "주니어", parity: null, autoAssign: false },
+      { id: "head", name: "헤드", parity: null, autoAssign: false }
     ];
 
     const CONFIG = {
@@ -842,6 +962,7 @@
 
     function showNotice(msg, type = "info") {
       const el = document.getElementById("notice");
+      if (!el) return;
       el.textContent = msg;
       el.className = `notice show ${type}`;
       setTimeout(() => el.className = "notice", 4500);
@@ -1593,46 +1714,62 @@
       const mode = activeMode;
       const slots = makeSlots(mode);
       const table = document.getElementById("scheduleTable");
+      const freezeRoomClass = {
+        "1": "freeze-room-1",
+        "2": "freeze-room-2",
+        "3": "freeze-room-3",
+        "4-1": "freeze-room-4-1",
+        "4-2": "freeze-room-4-2",
+        "5": "freeze-room-5",
+        "6": "freeze-room-6",
+        "junior": "freeze-room-junior",
+        "head": "freeze-room-head"
+      };
+
+      const renderRoomCell = (room, slot, isBreak) => {
+        const selectedId = getAssignmentValue(mode, slot, room.id);
+        const options = availableStaffForCell(mode, slot, room.id);
+        const noStaff = !selectedId && staff.length > 0 && options.length === 0 && !isBreak;
+        const freezeClass = freezeRoomClass[String(room.id)] ? ` freeze-col ${freezeRoomClass[String(room.id)]}${String(room.id) === "head" ? " freeze-last" : ""}` : "";
+        const cls = isBreak ? `break-time room-col${freezeClass}` : selectedId ? `assigned room-col${freezeClass}` : noStaff ? `no-staff room-col${freezeClass}` : `room-col${freezeClass}`;
+        const bg = selectedId ? `background:${colorForStaff(selectedId)}; border-left:4px solid ${borderForStaff(selectedId)};` : "";
+        const selectBg = selectedId ? `background:${colorForStaff(selectedId)};` : "";
+
+        let cellHtml = `<td class="${cls}" style="${bg}">`;
+
+        if (isBreak) {
+          cellHtml += `<select disabled><option>휴게</option></select>`;
+        } else {
+          cellHtml += `<select onchange="setAssignment('${mode}', '${slot}', '${room.id}', this.value)" style="${selectBg}">`;
+          cellHtml += `<option value="">-</option>`;
+
+          options.forEach(person => {
+            const selected = selectedId === person.id ? "selected" : "";
+            cellHtml += `<option value="${person.id}" ${selected}>${person.name}</option>`;
+          });
+
+          cellHtml += `</select>`;
+        }
+
+        cellHtml += `</td>`;
+        return cellHtml;
+      };
 
       let html = "<thead><tr>";
-      html += "<th>시간</th>";
-      html += "<th>삭제</th>";
-      rooms.forEach(room => html += `<th>${room.name}</th>`);
+      html += "<th class=\"time-col freeze-col freeze-time\">시간</th>";
+      html += "<th class=\"delete-col freeze-col freeze-delete\">삭제</th>";
+      rooms.forEach(room => {
+        const freezeClass = freezeRoomClass[String(room.id)] ? ` freeze-col ${freezeRoomClass[String(room.id)]}${String(room.id) === "head" ? " freeze-last" : ""}` : "";
+        html += `<th class="room-col${freezeClass}">${room.name}</th>`;
+      });
       html += "</tr></thead><tbody>";
 
       slots.forEach(slot => {
         const isBreak = isCommonBreak(mode, slot);
         html += `<tr>`;
-        html += `<td>${slot}</td>`;
-        html += `<td><button class="danger" onclick="clearSlot('${mode}', '${slot}')">삭제</button></td>`;
-
-        rooms.forEach(room => {
-          const selectedId = getAssignmentValue(mode, slot, room.id);
-          const options = availableStaffForCell(mode, slot, room.id);
-          const noStaff = !selectedId && staff.length > 0 && options.length === 0 && !isBreak;
-          const cls = isBreak ? "break-time" : selectedId ? "assigned" : noStaff ? "no-staff" : "";
-          const bg = selectedId ? `background:${colorForStaff(selectedId)}; border-left:4px solid ${borderForStaff(selectedId)};` : "";
-          const selectBg = selectedId ? `background:${colorForStaff(selectedId)};` : "";
-
-          html += `<td class="${cls}" style="${bg}">`;
-
-          if (isBreak) {
-            html += `<select disabled><option>휴게</option></select>`;
-          } else {
-            html += `<select onchange="setAssignment('${mode}', '${slot}', '${room.id}', this.value)" style="${selectBg}">`;
-            html += `<option value="">-</option>`;
-
-            options.forEach(person => {
-              const selected = selectedId === person.id ? "selected" : "";
-              html += `<option value="${person.id}" ${selected}>${person.name}</option>`;
-            });
-
-            html += `</select>`;
-          }
-
-          html += `</td>`;
-        });
-
+        html += `<td class="time-col freeze-col freeze-time">${slot}</td>`;
+        html += `<td class="delete-col freeze-col freeze-delete"><button class="danger" onclick="clearSlot('${mode}', '${slot}')">삭제</button></td>`;
+        rooms.forEach(room => html += renderRoomCell(room, slot, isBreak));
         html += `</tr>`;
       });
 
@@ -1746,6 +1883,58 @@
       return !CLOUD_PASSWORD || localStorage.getItem(CLOUD_AUTH_KEY) === "true";
     }
 
+    function setAppLocked(locked) {
+      document.body.classList.toggle("auth-locked", locked);
+      const authScreen = document.getElementById("authScreen");
+      if (authScreen) authScreen.style.display = locked ? "grid" : "none";
+
+      if (locked) {
+        const input = document.getElementById("authPassword");
+        if (input) {
+          input.value = "";
+          setTimeout(() => input.focus(), 0);
+        }
+      }
+    }
+
+    function showAuthMessage(message, type = "error") {
+      const el = document.getElementById("authMessage");
+      if (!el) return;
+      el.textContent = message;
+      el.className = `auth-message ${type}`;
+    }
+
+    async function unlockAppWithPassword(password) {
+      if (CLOUD_PASSWORD && password !== CLOUD_PASSWORD) {
+        showAuthMessage("비밀번호가 올바르지 않습니다.");
+        return;
+      }
+
+      localStorage.setItem(CLOUD_AUTH_KEY, "true");
+      showAuthMessage("Firebase에 연결하는 중입니다...", "info");
+      setAppLocked(false);
+      loadFirebaseSettings();
+      await loadFromCloud(true, { skipAccessPrompt: true });
+    }
+
+    function setupAuthScreen() {
+      const form = document.getElementById("authForm");
+      if (!form) return;
+
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const input = document.getElementById("authPassword");
+        const button = document.getElementById("authSubmit");
+        if (button) button.disabled = true;
+
+        try {
+          await unlockAppWithPassword(input ? input.value : "");
+        } finally {
+          if (button) button.disabled = false;
+        }
+      });
+    }
+
     function requestCloudAccess() {
       if (hasCloudAccess()) return true;
       if (!CLOUD_PASSWORD) return true;
@@ -1765,6 +1954,7 @@
 
     function clearCloudAccess() {
       localStorage.removeItem(CLOUD_AUTH_KEY);
+      setAppLocked(true);
       showNotice("클라우드 인증이 해제되었습니다.", "info");
     }
 
@@ -1865,15 +2055,16 @@
       }
     }
 
-    async function loadFromCloud(show = false) {
+    async function loadFromCloud(show = false, options = {}) {
       if (show) showNotice(hasCloudAccess() ? "클라우드 불러오기를 시작합니다." : "클라우드 불러오기를 시작합니다. 비밀번호를 입력해주세요.", "info");
-      if (show && !requestCloudAccess()) return;
-      if (show) showNotice("클라우드에서 불러오는 중입니다...", "info");
-      if (!show) {
-        loadData(false);
-        return;
+      if (!hasCloudAccess()) {
+        if (show && !options.skipAccessPrompt && !requestCloudAccess()) return;
+        if (!hasCloudAccess()) {
+          loadData(false);
+          return;
+        }
       }
-
+      if (show) showNotice("클라우드에서 불러오는 중입니다...", "info");
       const db = getFirestoreDb();
       if (!db) {
         loadData(show);
@@ -2016,8 +2207,15 @@
       showNotice("초기화되었습니다.", "info");
     }
 
-    loadFirebaseSettings();
-    loadFromCloud(false);
+    function initApp() {
+      setupAuthScreen();
+      localStorage.removeItem(CLOUD_AUTH_KEY);
+      loadFirebaseSettings();
+      loadData(false);
+      setAppLocked(true);
+    }
+
+    initApp();
   </script>
 </body>
 </html>
