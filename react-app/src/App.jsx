@@ -1170,8 +1170,8 @@ const legacyScript = `const rooms = [
       };
 
       let html = "<thead><tr>";
-      html += "<th class="time-col freeze-col freeze-time">시간</th>";
-      html += "<th class="delete-col freeze-col freeze-delete">삭제</th>";
+      html += '<th class="time-col freeze-col freeze-time">시간</th>';
+      html += '<th class="delete-col freeze-col freeze-delete">삭제</th>';
       rooms.forEach(room => {
         const freezeClass = freezeRoomClass[String(room.id)] ? \` freeze-col \${freezeRoomClass[String(room.id)]}\${String(room.id) === "head" ? " freeze-last" : ""}\` : "";
         html += \`<th class="room-col\${freezeClass}">\${room.name}</th>\`;
