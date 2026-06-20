@@ -5,13 +5,5 @@ service cloud.firestore {
     match /roomAssignments/{document} {
       allow read, write: if true;
     }
-
-    match /defaultStaffSettings/{document} {
-      allow read, write: if true;
-    }
-
-    match /dailySchedules/{date} {
-      allow read, write: if true;
-    }
   }
 }
