@@ -18,6 +18,30 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
   </header>
 
   <main>
+    <section class="card date-card">
+      <h2>&#45216;&#51676;&#48324; &#48176;&#51221;&#54364;</h2>
+      <div class="row date-controls">
+        <button class="secondary" onclick="changeCalendarMonth(-1)">&#51060;&#51204; &#45804;</button>
+        <div>
+          <label>&#50672;&#46020;/&#50900;</label>
+          <input id="scheduleMonth" type="month" onchange="setCalendarMonthFromInput(this.value)" />
+        </div>
+        <button class="secondary" onclick="changeCalendarMonth(1)">&#45796;&#51020; &#45804;</button>
+        <div class="selected-date-box">
+          <label>&#49440;&#53469; &#45216;&#51676;</label>
+          <strong id="selectedScheduleDateLabel"></strong>
+        </div>
+        <button class="firebase" onclick="loadFromCloud(true)">&#49440;&#53469; &#45216;&#51676; &#48520;&#47084;&#50724;&#44592;</button>
+        <button class="firebase" onclick="saveToCloud()">&#49440;&#53469; &#45216;&#51676; &#51200;&#51109;</button>
+        <button class="secondary" onclick="saveDefaultStaffToCloud()">&#44592;&#48376; &#45812;&#45817;&#51088; &#51200;&#51109;</button>
+        <button class="secondary" onclick="loadDefaultStaffFromCloud()">&#44592;&#48376; &#45812;&#45817;&#51088; &#48520;&#47084;&#50724;&#44592;</button>
+      </div>
+      <div id="scheduleCalendar" class="schedule-calendar"></div>
+      <p class="help">
+        &#44592;&#51316; &#48176;&#51221;&#54364; &#50577;&#49885;&#51008; &#44536;&#45824;&#47196; &#49324;&#50857;&#54633;&#45768;&#45796;. &#45804;&#47141;&#50640;&#49436; &#45216;&#51676;&#47484; &#49440;&#53469;&#54616;&#47732; &#54644;&#45817; &#45216;&#51676; &#44592;&#51456;&#51004;&#47196; &#53364;&#46972;&#50864;&#46300; &#51200;&#51109;/&#48520;&#47084;&#50724;&#44592;&#44032; &#48516;&#47532;&#46121;&#45768;&#45796;.
+      </p>
+    </section>
+
     <section class="card staff-card">
       <h2>담당자 설정</h2>
 
@@ -221,6 +245,9 @@ const legacyScript = `const rooms = [
     const CLOUD_PASSWORD = "room2026";
     const FIRESTORE_COLLECTION = "roomAssignments";
     const FIRESTORE_DOCUMENT = "current";
+    const DAILY_SCHEDULE_COLLECTION = "dailySchedules";
+    const DEFAULT_STAFF_COLLECTION = "defaultStaffSettings";
+    const DEFAULT_STAFF_DOCUMENT = "default";
     const DEFAULT_FIREBASE_CONFIG = {
       apiKey: "AIzaSyB0fDEHLZlMYc4rxU4RQTdbUMNCHvcmzOE",
       authDomain: "task-assignment-8dcee.firebaseapp.com",
@@ -241,6 +268,87 @@ const legacyScript = `const rooms = [
     let firestoreDb = null;
     let cloudSaveTimer = null;
     let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
+    let selectedScheduleDate = formatDateKey(new Date());
+    let visibleCalendarDate = new Date();
+
+
+    const dayNames = ["\\uC77C", "\\uC6D4", "\\uD654", "\\uC218", "\\uBAA9", "\\uAE08", "\\uD1A0"];
+    const dayNamesLong = ["\\uC77C\\uC694\\uC77C", "\\uC6D4\\uC694\\uC77C", "\\uD654\\uC694\\uC77C", "\\uC218\\uC694\\uC77C", "\\uBAA9\\uC694\\uC77C", "\\uAE08\\uC694\\uC77C", "\\uD1A0\\uC694\\uC77C"];
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateKey(date) {
+      return date.getFullYear() + "-" + pad2(date.getMonth() + 1) + "-" + pad2(date.getDate());
+    }
+
+    function parseDateKey(dateKey) {
+      const parts = dateKey.split("-").map(Number);
+      return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    function selectedDateTitle() {
+      const date = parseDateKey(selectedScheduleDate);
+      return selectedScheduleDate + " (" + dayNames[date.getDay()] + ") \\uC5C5\\uBB34 \\uBC30\\uC815\\uD45C";
+    }
+
+    function updateSelectedDateLabel() {
+      const label = document.getElementById("selectedScheduleDateLabel");
+      if (label) label.textContent = selectedDateTitle();
+    }
+
+    function renderScheduleCalendar() {
+      const grid = document.getElementById("scheduleCalendar");
+      const monthInput = document.getElementById("scheduleMonth");
+      if (!grid || !monthInput) return;
+
+      const year = visibleCalendarDate.getFullYear();
+      const month = visibleCalendarDate.getMonth();
+      const todayKey = formatDateKey(new Date());
+      monthInput.value = year + "-" + pad2(month + 1);
+
+      const firstDate = new Date(year, month, 1);
+      const start = new Date(year, month, 1 - firstDate.getDay());
+      let html = '<div class="calendar-weekdays">' + dayNames.map(day => '<span>' + day + '</span>').join("") + '</div><div class="calendar-days">';
+
+      for (let i = 0; i < 42; i++) {
+        const date = new Date(start);
+        date.setDate(start.getDate() + i);
+        const dateKey = formatDateKey(date);
+        const classes = [
+          "calendar-day",
+          date.getMonth() === month ? "" : "outside",
+          dateKey === todayKey ? "today" : "",
+          dateKey === selectedScheduleDate ? "selected" : ""
+        ].filter(Boolean).join(" ");
+        const clickHandler = "selectScheduleDate('" + dateKey + "')";
+        html += '<button type="button" class="' + classes + '" onclick="' + clickHandler + '">' + date.getDate() + '</button>';
+      }
+
+      html += '</div>';
+      grid.innerHTML = html;
+      updateSelectedDateLabel();
+    }
+
+    function changeCalendarMonth(offset) {
+      visibleCalendarDate = new Date(visibleCalendarDate.getFullYear(), visibleCalendarDate.getMonth() + offset, 1);
+      renderScheduleCalendar();
+    }
+
+    function setCalendarMonthFromInput(value) {
+      if (!value) return;
+      const parts = value.split("-").map(Number);
+      visibleCalendarDate = new Date(parts[0], parts[1] - 1, 1);
+      renderScheduleCalendar();
+    }
+
+    async function selectScheduleDate(dateKey) {
+      selectedScheduleDate = dateKey;
+      visibleCalendarDate = parseDateKey(dateKey);
+      renderScheduleCalendar();
+      await loadFromCloud(true, { skipAccessPrompt: true, useDefaultWhenMissing: true });
+    }
 
     const staffColors = [
       "#dbeafe", "#dcfce7", "#fef3c7", "#fce7f3", "#ede9fe", "#cffafe",
@@ -1459,7 +1567,7 @@ const legacyScript = `const rooms = [
       }
 
       try {
-        await db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOCUMENT).set({
+        await db.collection(DAILY_SCHEDULE_COLLECTION).doc(selectedScheduleDate).set({
           ...buildData(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
@@ -1487,19 +1595,94 @@ const legacyScript = `const rooms = [
       }
 
       try {
-        const snap = await db.collection(FIRESTORE_COLLECTION).doc(FIRESTORE_DOCUMENT).get();
+        const snap = await db.collection(DAILY_SCHEDULE_COLLECTION).doc(selectedScheduleDate).get();
         if (!snap.exists) {
-          loadData(false);
-          if (show) showNotice("클라우드 저장 데이터가 아직 없습니다. 먼저 클라우드 저장을 실행해주세요.", "info");
+          assignments = { weekday: {}, saturday: {} };
+          activeMode = "weekday";
+          if (options.useDefaultWhenMissing) {
+            await loadDefaultStaffFromCloud(false);
+          } else {
+            renderStaff();
+            renderTable();
+          }
+          saveData(false);
+          if (show) showNotice(selectedScheduleDate + " ???? ?? ? ???? ?????.", "info");
           return;
         }
 
         applyData(snap.data());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(buildData()));
-        if (show) showNotice("클라우드에서 불러왔습니다.", "info");
+        if (show) showNotice(selectedScheduleDate + " ???? ?????? ??????.", "info");
       } catch (e) {
         loadData(false);
         showNotice(\`클라우드 불러오기 실패: \${cloudErrorMessage(e)}\`, "error");
+      }
+    }
+
+
+
+    async function saveDefaultStaffToCloud() {
+      showNotice("?? ??? ??? ?????.", "info");
+      if (!requestCloudAccess()) return;
+      const db = getFirestoreDb();
+      if (!db) {
+        showNotice("Firebase ???? ?? ??????.", "error");
+        return;
+      }
+
+      try {
+        await db.collection(DEFAULT_STAFF_COLLECTION).doc(DEFAULT_STAFF_DOCUMENT).set({
+          staffList: staff,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        showNotice("?? ??? ??? ?? ???? ??????.", "info");
+      } catch (e) {
+        showNotice("?? ??? ?? ??: " + cloudErrorMessage(e), "error");
+      }
+    }
+
+    async function loadDefaultStaffFromCloud(show = true) {
+      if (show) showNotice("?? ???? ?????.", "info");
+      if (!hasCloudAccess()) {
+        if (show && !requestCloudAccess()) return false;
+        if (!hasCloudAccess()) return false;
+      }
+      const db = getFirestoreDb();
+      if (!db) {
+        if (show) showNotice("Firebase ???? ?? ??????.", "error");
+        return false;
+      }
+
+      try {
+        const snap = await db.collection(DEFAULT_STAFF_COLLECTION).doc(DEFAULT_STAFF_DOCUMENT).get();
+        if (!snap.exists) {
+          staff = [];
+          cleanInvalidAssignments();
+          renderStaff();
+          renderTable();
+          if (show) showNotice("??? ?? ???? ????.", "info");
+          return false;
+        }
+
+        staff = (snap.data().staffList || []).map(s => ({
+          id: s.id || uid(),
+          name: s.name || "",
+          worksWeekday: s.worksWeekday !== false,
+          worksSaturday: s.worksSaturday !== false,
+          workStart: s.workStart || "10:00",
+          workEnd: s.workEnd || "21:00",
+          breakStart: s.breakStart || "13:00",
+          breakEnd: s.breakEnd || "14:00"
+        }));
+        cleanInvalidAssignments();
+        renderStaff();
+        renderTable();
+        saveData(false);
+        if (show) showNotice("?? ???? ??????.", "info");
+        return true;
+      } catch (e) {
+        if (show) showNotice("?? ??? ???? ??: " + cloudErrorMessage(e), "error");
+        return false;
       }
     }
 

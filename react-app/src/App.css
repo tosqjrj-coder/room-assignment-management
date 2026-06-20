@@ -219,6 +219,81 @@
       margin-bottom: 10px;
     }
 
+    .date-card {
+      border-left: 4px solid #0f766e;
+    }
+
+    .date-controls {
+      margin-bottom: 12px;
+    }
+
+    .selected-date-box {
+      min-width: 210px;
+      padding: 0 4px;
+    }
+
+    .selected-date-box strong {
+      display: block;
+      min-height: 38px;
+      line-height: 38px;
+      color: var(--dark);
+      font-size: 15px;
+    }
+
+    .schedule-calendar {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fbfdff;
+    }
+
+    .calendar-weekdays,
+    .calendar-days {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .calendar-weekdays span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+      padding: 4px 0;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      height: auto;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid transparent;
+      font-weight: 700;
+    }
+
+    .calendar-day:hover {
+      background: #e5e7eb;
+      color: var(--dark);
+    }
+
+    .calendar-day.outside {
+      color: #a8b0bd;
+    }
+
+    .calendar-day.today {
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+
+    .calendar-day.selected {
+      background: var(--dark);
+      color: white;
+      border-color: var(--dark);
+    }
+
     .summary {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
