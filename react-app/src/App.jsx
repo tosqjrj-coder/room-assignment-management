@@ -1961,6 +1961,7 @@ const legacyScript = `const rooms = [
       renderStaff();
       renderTable();
       saveData(false);
+      saveToCloud(false);
     }
 
     function modalEditStaff(id) {
@@ -2002,6 +2003,7 @@ const legacyScript = `const rooms = [
       renderStaff();
       renderTable();
       saveData(false);
+      saveToCloud(false);
       showModalNotice("담당자가 삭제되었습니다.", "info");
     }
 
