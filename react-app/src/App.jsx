@@ -1342,6 +1342,7 @@ const legacyScript = `const rooms = [
       cleanInvalidAssignments();
       renderStaff();
       renderTable();
+      renderScheduleCalendar();
     }
 
     function getFirebaseInputConfig() {
@@ -1853,6 +1854,7 @@ const legacyScript = `const rooms = [
       setupAuthScreen();
       localStorage.removeItem(CLOUD_AUTH_KEY);
       loadFirebaseSettings();
+      renderScheduleCalendar();
       loadData(false);
       setAppLocked(true);
     }
