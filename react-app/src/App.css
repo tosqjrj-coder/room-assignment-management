@@ -783,6 +783,11 @@
       overflow: hidden;
     }
 
+    .modal-card-lg {
+      width: 680px;
+      max-width: 96vw;
+    }
+
     .modal-header {
       display: flex;
       align-items: center;
@@ -792,6 +797,12 @@
     }
 
     .modal-header h3 { margin: 0; font-size: 16px; }
+
+    .modal-header-right {
+      display: flex;
+      gap: 8px;
+      margin-left: auto;
+    }
 
     .modal-date-label {
       font-size: 13px;
@@ -811,6 +822,30 @@
       padding: 12px 20px;
       border-top: 1px solid var(--line);
       justify-content: flex-end;
+    }
+
+    .default-staff-modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .default-staff-form-section {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .default-staff-form-section h4 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    #defaultStaffListContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .override-table {
