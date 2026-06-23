@@ -1,5 +1,10 @@
 import { useEffect } from 'react'
 import './App.css'
+import {
+  rooms, CONFIG, dayNames, dayNamesLong, staffColors, staffBorders,
+  pad2, uid, toMin, toTime, formatDateKey, parseDateKey, shuffle, overlaps,
+} from './lib/utils.js'
+import { cloudErrorMessage, parseFirebaseConfigText, isFirebaseConfigured } from './lib/firebase.js'
 
 const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="비밀번호 확인">
     <form id="authForm" class="auth-card">
@@ -1670,13 +1675,13 @@ const legacyScript = `const rooms = [
             renderTable();
           }
           saveData(false);
-          if (show) showNotice(selectedScheduleDate + " ???? ?? ? ???? ?????.", "info");
+          if (show) showNotice(selectedScheduleDate + " 날짜 데이터가 없어 빈 배정표를 표시합니다.", "info");
           return;
         }
 
         applyData(snap.data());
         localStorage.setItem(STORAGE_KEY, JSON.stringify(buildData()));
-        if (show) showNotice(selectedScheduleDate + " ???? ?????? ??????.", "info");
+        if (show) showNotice(selectedScheduleDate + " 클라우드 데이터를 불러왔습니다.", "info");
       } catch (e) {
         loadData(false);
         showNotice(\`클라우드 불러오기 실패: \${cloudErrorMessage(e)}\`, "error");
@@ -1686,11 +1691,11 @@ const legacyScript = `const rooms = [
 
 
     async function saveDefaultStaffToCloud() {
-      showNotice("?? ??? ??? ?????.", "info");
+      showNotice("기본 담당자 저장 중입니다.", "info");
       if (!requestCloudAccess()) return;
       const db = getFirestoreDb();
       if (!db) {
-        showNotice("Firebase ???? ?? ??????.", "error");
+        showNotice("Firebase 설정값을 확인해주세요.", "error");
         return;
       }
 
@@ -1699,21 +1704,21 @@ const legacyScript = `const rooms = [
           staffList: staff,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        showNotice("?? ??? ??? ?? ???? ??????.", "info");
+        showNotice("기본 담당자 설정이 클라우드에 저장되었습니다.", "info");
       } catch (e) {
-        showNotice("?? ??? ?? ??: " + cloudErrorMessage(e), "error");
+        showNotice("기본 담당자 저장 실패: " + cloudErrorMessage(e), "error");
       }
     }
 
     async function loadDefaultStaffFromCloud(show = true) {
-      if (show) showNotice("?? ???? ?????.", "info");
+      if (show) showNotice("기본 담당자를 불러오는 중입니다.", "info");
       if (!hasCloudAccess()) {
         if (show && !requestCloudAccess()) return false;
         if (!hasCloudAccess()) return false;
       }
       const db = getFirestoreDb();
       if (!db) {
-        if (show) showNotice("Firebase ???? ?? ??????.", "error");
+        if (show) showNotice("Firebase 설정값을 확인해주세요.", "error");
         return false;
       }
 
@@ -1724,7 +1729,7 @@ const legacyScript = `const rooms = [
           cleanInvalidAssignments();
           renderStaff();
           renderTable();
-          if (show) showNotice("??? ?? ???? ????.", "info");
+          if (show) showNotice("저장된 기본 담당자 데이터가 없습니다.", "info");
           return false;
         }
 
@@ -1744,10 +1749,10 @@ const legacyScript = `const rooms = [
         renderStaff();
         renderTable();
         saveData(false);
-        if (show) showNotice("?? ???? ??????.", "info");
+        if (show) showNotice("기본 담당자를 불러왔습니다.", "info");
         return true;
       } catch (e) {
-        if (show) showNotice("?? ??? ???? ??: " + cloudErrorMessage(e), "error");
+        if (show) showNotice("기본 담당자 불러오기 실패: " + cloudErrorMessage(e), "error");
         return false;
       }
     }
@@ -2257,6 +2262,13 @@ function App() {
       .then(() => loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js'))
       .then(() => {
       if (cancelled) return
+      // Expose lib modules as globals — legacyScript redefines these locally for now.
+      // When legacyScript defs are removed (Session 4), these window assignments take over.
+      Object.assign(window, {
+        rooms, CONFIG, dayNames, dayNamesLong, staffColors, staffBorders,
+        pad2, uid, toMin, toTime, formatDateKey, parseDateKey, shuffle, overlaps,
+        cloudErrorMessage, parseFirebaseConfigText, isFirebaseConfigured,
+      })
       scriptEl = document.createElement('script')
       scriptEl.textContent = legacyScript
       document.body.appendChild(scriptEl)
