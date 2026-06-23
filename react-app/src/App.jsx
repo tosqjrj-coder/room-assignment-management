@@ -35,6 +35,7 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
         <span>&#49440;&#53469; &#45216;&#51676;</span>
         <strong id="selectedScheduleDateLabel"></strong>
       </div>
+      <button id="calendarSaveBtn" class="sidebar-save-btn" onclick="saveToCloud(true)">저장</button>
     </aside>
     <main>
 
@@ -332,6 +333,7 @@ const legacyScript = `const rooms = [
     let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
     let selectedScheduleDate = formatDateKey(new Date());
     let visibleCalendarDate = new Date();
+    let isDirty = false;
 
 
     const dayNames = ["\\uC77C", "\\uC6D4", "\\uD654", "\\uC218", "\\uBAA9", "\\uAE08", "\\uD1A0"];
@@ -407,6 +409,7 @@ const legacyScript = `const rooms = [
     }
 
     async function selectScheduleDate(dateKey) {
+      if (isDirty && !window.confirm("저장하지 않으면 변경사항이 사라집니다. 이동하시겠습니까?")) return;
       selectedScheduleDate = dateKey;
       visibleCalendarDate = parseDateKey(dateKey);
       renderScheduleCalendar();
@@ -454,6 +457,29 @@ const legacyScript = `const rooms = [
         map[roomKey(slot, roomId)] = staffId;
       } else {
         delete map[roomKey(slot, roomId)];
+      }
+      markDirty();
+    }
+
+    function markDirty() {
+      isDirty = true;
+      updateSaveBtn();
+    }
+
+    function clearDirty() {
+      isDirty = false;
+      updateSaveBtn();
+    }
+
+    function updateSaveBtn() {
+      const btn = document.getElementById('calendarSaveBtn');
+      if (!btn) return;
+      if (isDirty) {
+        btn.textContent = '저장 *';
+        btn.classList.add('dirty');
+      } else {
+        btn.textContent = '저장';
+        btn.classList.remove('dirty');
       }
     }
 
@@ -1640,6 +1666,7 @@ const legacyScript = `const rooms = [
           ...buildData(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        clearDirty();
         if (show) showNotice("클라우드에 저장되었습니다.", "info");
       } catch (e) {
         showNotice(\`클라우드 저장 실패: \${cloudErrorMessage(e)}\`, "error");
@@ -1675,11 +1702,13 @@ const legacyScript = `const rooms = [
             renderTable();
           }
           saveData(false);
+          clearDirty();
           if (show) showNotice(selectedScheduleDate + " 날짜 데이터가 없어 빈 배정표를 표시합니다.", "info");
           return;
         }
 
         applyData(snap.data());
+        clearDirty();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(buildData()));
         if (show) showNotice(selectedScheduleDate + " 클라우드 데이터를 불러왔습니다.", "info");
       } catch (e) {

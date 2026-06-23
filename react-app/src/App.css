@@ -375,6 +375,33 @@
       width: 100%;
     }
 
+    .sidebar-save-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--card);
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .sidebar-save-btn.dirty {
+      background: #fff7ed;
+      border-color: #fb923c;
+      color: #ea580c;
+    }
+
+    .sidebar-save-btn:hover {
+      background: #f3f4f6;
+    }
+
+    .sidebar-save-btn.dirty:hover {
+      background: #ffedd5;
+    }
+
     .calendar-weekdays,
     .calendar-days {
       display: grid;
