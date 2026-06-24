@@ -1328,24 +1328,12 @@ const legacyScript = `const rooms = [
       const mode = activeMode;
       const slots = makeSlots(mode);
       const table = document.getElementById("scheduleTable");
-      const freezeRoomClass = {
-        "1": "freeze-room-1",
-        "2": "freeze-room-2",
-        "3": "freeze-room-3",
-        "4-1": "freeze-room-4-1",
-        "4-2": "freeze-room-4-2",
-        "5": "freeze-room-5",
-        "6": "freeze-room-6",
-        "junior": "freeze-room-junior",
-        "head": "freeze-room-head"
-      };
 
       const renderRoomCell = (room, slot, isBreak) => {
         const selectedId = getAssignmentValue(mode, slot, room.id);
         const options = availableStaffForCell(mode, slot, room.id);
         const noStaff = !selectedId && staff.length > 0 && options.length === 0 && !isBreak;
-        const freezeClass = freezeRoomClass[String(room.id)] ? \` freeze-col \${freezeRoomClass[String(room.id)]}\${String(room.id) === "head" ? " freeze-last" : ""}\` : "";
-        const cls = isBreak ? \`break-time room-col\${freezeClass}\` : selectedId ? \`assigned room-col\${freezeClass}\` : noStaff ? \`no-staff room-col\${freezeClass}\` : \`room-col\${freezeClass}\`;
+        const cls = isBreak ? \`break-time room-col\` : selectedId ? \`assigned room-col\` : noStaff ? \`no-staff room-col\` : \`room-col\`;
         const bg = selectedId ? \`background:\${colorForStaff(selectedId)}; border-left:4px solid \${borderForStaff(selectedId)};\` : "";
         const selectBg = selectedId ? \`background:\${colorForStaff(selectedId)};\` : "";
 
@@ -1371,10 +1359,8 @@ const legacyScript = `const rooms = [
 
       let html = "<thead><tr>";
       html += '<th class="time-col freeze-col freeze-time">시간</th>';
-      html += '<th class="delete-col freeze-col freeze-delete">삭제</th>';
       rooms.forEach(room => {
-        const freezeClass = freezeRoomClass[String(room.id)] ? \` freeze-col \${freezeRoomClass[String(room.id)]}\${String(room.id) === "head" ? " freeze-last" : ""}\` : "";
-        html += \`<th class="room-col\${freezeClass}">\${room.name}</th>\`;
+        html += \`<th class="room-col">\${room.name}</th>\`;
       });
       html += "</tr></thead><tbody>";
 
@@ -1382,7 +1368,6 @@ const legacyScript = `const rooms = [
         const isBreak = isCommonBreak(mode, slot);
         html += \`<tr>\`;
         html += \`<td class="time-col freeze-col freeze-time">\${slot}</td>\`;
-        html += \`<td class="delete-col freeze-col freeze-delete"><button class="danger" onclick="clearSlot('\${mode}', '\${slot}')">삭제</button></td>\`;
         rooms.forEach(room => html += renderRoomCell(room, slot, isBreak));
         html += \`</tr>\`;
       });

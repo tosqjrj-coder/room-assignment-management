@@ -604,12 +604,6 @@
       max-width: 130px;
     }
 
-    .delete-col {
-      width: 76px;
-      min-width: 76px;
-      max-width: 76px;
-    }
-
     .room-col {
       width: 130px;
       min-width: 130px;
@@ -633,19 +627,8 @@
       z-index: 5;
     }
 
-    .freeze-time { left: 0; }
-    .freeze-delete { left: 130px; }
-    .freeze-room-1 { left: 206px; }
-    .freeze-room-2 { left: 336px; }
-    .freeze-room-3 { left: 466px; }
-    .freeze-room-4-1 { left: 596px; }
-    .freeze-room-4-2 { left: 726px; }
-    .freeze-room-5 { left: 856px; }
-    .freeze-room-6 { left: 986px; }
-    .freeze-room-junior { left: 1116px; }
-    .freeze-room-head { left: 1246px; }
-
-    .freeze-last {
+    .freeze-time {
+      left: 0;
       box-shadow: 1px 0 0 var(--line), 8px 0 12px rgba(15, 23, 42, 0.08);
     }
 
