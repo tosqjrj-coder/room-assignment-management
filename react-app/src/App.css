@@ -891,6 +891,16 @@
     .badge-include { background: var(--ok); color: #166534; }
     .badge-exclude { background: var(--bad); color: var(--bad-text); }
 
+    .staff-break-panel { margin-bottom: 10px; }
+    .staff-break-panel-inner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 0; }
+    .staff-break-panel-title { font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .staff-break-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: background 0.15s; min-width: 80px; }
+    .staff-break-card:hover { background: #e5e7eb; }
+    .staff-break-card.override-active { background: var(--warn); border-color: #fbbf24; }
+    .staff-break-name { font-size: 13px; font-weight: 600; }
+    .staff-break-time { font-size: 11px; color: var(--muted); }
+    .staff-break-card.override-active .staff-break-time { color: var(--warn-text); font-weight: 600; }
+
     @media print {
       .auth-screen,
       .calendar-sidebar,

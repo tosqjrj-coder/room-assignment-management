@@ -187,6 +187,7 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
         </div>
       </div>
 
+      <div id="staffBreakPanel" class="staff-break-panel"></div>
       <div class="table-wrap">
         <table id="scheduleTable"></table>
       </div>
@@ -209,22 +210,6 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
         </div>
       </div>
       <div class="modal-body default-staff-modal-body">
-        <div class="default-staff-form-section">
-          <h4>&#53664;&#50836;&#51068; &#44277;&#53685; &#55092;&#44172; &#49884;&#44036;</h4>
-          <div class="row">
-            <div>
-              <label>&#55092;&#44172; &#49884;&#51089;</label>
-              <input id="modalSatBreakStart" type="time" value="13:00" step="1800" />
-            </div>
-            <div>
-              <label>&#55092;&#44172; &#51333;&#47308;</label>
-              <input id="modalSatBreakEnd" type="time" value="14:00" step="1800" />
-            </div>
-            <button onclick="saveSaturdayBreakSetting()">&#51201;&#50857;</button>
-            <button class="danger" onclick="clearSaturdayBreakSetting()">&#55092;&#44172; &#54644;&#51228;</button>
-          </div>
-          <p class="help">&#53664;&#50836;&#51068; &#44540;&#47924; &#45813;&#45813;&#51088; &#51204;&#52404;&#50640; &#44277;&#53685; &#51201;&#50857;&#46104;&#45716; &#55092;&#44172; &#49884;&#44036;&#51077;&#45768;&#45796;. &#54644;&#51228; &#49884; &#47784;&#46304; &#49884;&#44036;&#45824; &#48176;&#51221; &#44032;&#45733;&#54633;&#45768;&#45796;.</p>
-        </div>
         <div class="default-staff-form-section">
           <h4 id="defaultStaffFormTitle">&#45813;&#45813;&#51088; &#52628;&#44032;</h4>
           <div class="row">
@@ -251,11 +236,19 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
             </div>
             <div>
               <label>&#54217;&#51068; &#55092;&#49885; &#49884;&#51089;</label>
-              <input id="modalBreakStart" type="time" value="13:00" step="1800" />
+              <input id="modalBreakStart" type="time" step="1800" />
             </div>
             <div>
               <label>&#54217;&#51068; &#55092;&#49885; &#51333;&#47308;</label>
-              <input id="modalBreakEnd" type="time" value="14:00" step="1800" />
+              <input id="modalBreakEnd" type="time" step="1800" />
+            </div>
+            <div>
+              <label>&#53664;&#50836;&#51068; &#55092;&#44172; &#49884;&#51089;</label>
+              <input id="modalPersonSatBreakStart" type="time" step="1800" />
+            </div>
+            <div>
+              <label>&#53664;&#50836;&#51068; &#55092;&#44172; &#51333;&#47308;</label>
+              <input id="modalPersonSatBreakEnd" type="time" step="1800" />
             </div>
             <button id="modalSaveStaffBtn" onclick="modalSaveStaff()">&#45813;&#45813;&#51088; &#52628;&#44032;</button>
             <button id="modalCancelEditBtn" class="secondary" onclick="modalCancelEdit()" style="display:none;">&#49688;&#51221; &#52712;&#49548;</button>
@@ -263,6 +256,26 @@ const legacyMarkup = `<section id="authScreen" class="auth-screen" aria-label="�
           <div id="modalNotice" class="notice" style="margin-top:8px;display:none;"></div>
         </div>
         <div id="defaultStaffListContainer"></div>
+      </div>
+    </div>
+  </div>
+  <div id="dailyBreakModal" class="modal-overlay" style="display:none;" onclick="handleDailyBreakModalOverlay(event)">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="dailyBreakModalTitle">&#45813;&#45813;&#51088; &#55092;&#44172; &#49884;&#44036;</h3>
+        <button class="secondary" onclick="closeDailyBreakModal()">&#45803;&#44592;</button>
+      </div>
+      <div class="modal-body">
+        <p id="dailyBreakDefaultInfo" class="help" style="margin-top:0;"></p>
+        <div class="row">
+          <div><label>&#55092;&#44172; &#49884;&#51089;</label><input id="dailyBreakStart" type="time" step="1800" /></div>
+          <div><label>&#55092;&#44172; &#51333;&#47308;</label><input id="dailyBreakEnd" type="time" step="1800" /></div>
+        </div>
+        <div id="dailyBreakNotice" class="notice" style="display:none;"></div>
+      </div>
+      <div class="modal-footer row">
+        <button onclick="saveDailyBreakOverride()">&#51201;&#50857;</button>
+        <button class="danger" onclick="clearDailyBreakOverride()">&#50724;&#48260;&#47548;&#51060;&#46300; &#54644;&#51228;</button>
       </div>
     </div>
   </div>
@@ -300,9 +313,7 @@ const legacyScript = `const rooms = [
         dayStart: "10:00",
         dayEnd: "21:00",
         usesShift: true,
-        usesParity: true,
-        commonBreakStart: null,
-        commonBreakEnd: null
+        usesParity: true
       },
       saturday: {
         label: "토요일",
@@ -310,13 +321,11 @@ const legacyScript = `const rooms = [
         dayStart: "10:00",
         dayEnd: "19:00",
         usesShift: false,
-        usesParity: false,
-        commonBreakStart: null,
-        commonBreakEnd: null
+        usesParity: false
       }
     };
 
-    const STORAGE_KEY = "roomScheduleAppV22";
+    const STORAGE_KEY = "roomScheduleAppV23";
     const FIREBASE_CONFIG_KEY = "roomScheduleFirebaseConfig";
     const CLOUD_AUTH_KEY = "roomScheduleCloudAuthenticated";
     const CLOUD_PASSWORD = "room2026";
@@ -344,6 +353,8 @@ const legacyScript = `const rooms = [
     let editingStaffId = null;
     let defaultStaffEditingId = null;
     let autoAssignOverrides = {};
+    let staffBreakOverrides = {};
+    let currentDailyBreakModalStaffId = null;
     let firestoreDb = null;
     let cloudSaveTimer = null;
     let firebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
@@ -608,16 +619,19 @@ const legacyScript = `const rooms = [
       return startA < endB && endA > startB;
     }
 
-    function isCommonBreak(mode, slot) {
-      const cfg = getConfig(mode);
-      if (!cfg.commonBreakStart || !cfg.commonBreakEnd) return false;
-      return overlaps(slotStart(slot), slotEnd(slot), toMin(cfg.commonBreakStart), toMin(cfg.commonBreakEnd));
+    function getEffectiveBreak(mode, person) {
+      const override = staffBreakOverrides[person.id];
+      if (override && override.breakStart && override.breakEnd) {
+        return { breakStart: override.breakStart, breakEnd: override.breakEnd };
+      }
+      if (mode === "saturday") {
+        return { breakStart: person.satBreakStart || "", breakEnd: person.satBreakEnd || "" };
+      }
+      return { breakStart: person.breakStart || "", breakEnd: person.breakEnd || "" };
     }
 
     function isWorking(mode, person, slot) {
       const cfg = getConfig(mode);
-
-      if (isCommonBreak(mode, slot)) return false;
 
       if (mode === "saturday") {
         if (person.worksSaturday === false) return false;
@@ -629,9 +643,9 @@ const legacyScript = `const rooms = [
     }
 
     function isResting(mode, person, slot) {
-      if (mode === "saturday") return isCommonBreak(mode, slot);
-      if (!person.breakStart || !person.breakEnd) return false;
-      return overlaps(slotStart(slot), slotEnd(slot), toMin(person.breakStart), toMin(person.breakEnd));
+      const { breakStart, breakEnd } = getEffectiveBreak(mode, person);
+      if (!breakStart || !breakEnd) return false;
+      return overlaps(slotStart(slot), slotEnd(slot), toMin(breakStart), toMin(breakEnd));
     }
 
     function canWork(mode, person, slot) {
@@ -912,7 +926,7 @@ const legacyScript = `const rooms = [
             <span><span class="badge \${s.isActive !== false ? "badge-include" : "badge-exclude"}">\${s.isActive !== false ? "활성" : "비활성"}</span> <span class="badge \${s.staffAutoAssignDefault !== false ? "badge-include" : "badge-exclude"}">자동배정 \${s.staffAutoAssignDefault !== false ? "포함" : "제외"}</span></span>
             <span>평일 근무 \${s.workStart}~\${s.workEnd} / \${shiftName(shiftType(s))} 출근자</span>
             <span>평일 휴식 \${s.breakStart || "-"}~\${s.breakEnd || "-"}</span>
-            <span>토요일 근무자는 10:00~19:00 전체 근무\${CONFIG.saturday.commonBreakStart ? \` / \${CONFIG.saturday.commonBreakStart}~\${CONFIG.saturday.commonBreakEnd} 공통 휴게\` : ""}</span>
+            <span>토요일 근무자는 10:00~19:00 전체 근무\${s.satBreakStart && s.satBreakEnd ? \` / 토요일 휴게 \${s.satBreakStart}~\${s.satBreakEnd}\` : ""}</span>
           </div>
           <div class="staff-actions">
             <button class="secondary" onclick="editStaff('\${s.id}')">수정</button>
@@ -1318,7 +1332,7 @@ const legacyScript = `const rooms = [
         box.innerHTML = \`
           <div class="rule">
             <strong>토요일 영업시간</strong>
-            토요일은 10:00~19:00 기준이며\${CONFIG.saturday.commonBreakStart ? \`, \${CONFIG.saturday.commonBreakStart}~\${CONFIG.saturday.commonBreakEnd}은 공통 휴게 시간입니다\` : \`, 공통 휴게 시간 없음 (전 시간대 배정 가능)\`}. 토요일 근무자로 체크된 담당자만 자동/수동 배정 후보가 됩니다.
+            토요일은 10:00~19:00 기준이며, 담당자별 개인 휴게 시간이 설정된 경우 해당 시간대 배정이 불가합니다. 토요일 근무자로 체크된 담당자만 자동/수동 배정 후보가 됩니다.
           </div>
           <div class="rule">
             <strong>토요일 근무 기준</strong>
@@ -1345,18 +1359,20 @@ const legacyScript = `const rooms = [
       const slots = makeSlots(mode);
       const table = document.getElementById("scheduleTable");
 
-      const renderRoomCell = (room, slot, isBreak) => {
+      const renderRoomCell = (room, slot) => {
         const selectedId = getAssignmentValue(mode, slot, room.id);
+        const assignedPerson = selectedId ? staff.find(s => s.id === selectedId) : null;
+        const isBreak = assignedPerson ? isResting(mode, assignedPerson, slot) : false;
         const options = availableStaffForCell(mode, slot, room.id);
         const noStaff = !selectedId && staff.length > 0 && options.length === 0 && !isBreak;
         const cls = isBreak ? \`break-time room-col\` : selectedId ? \`assigned room-col\` : noStaff ? \`no-staff room-col\` : \`room-col\`;
-        const bg = selectedId ? \`background:\${colorForStaff(selectedId)}; border-left:4px solid \${borderForStaff(selectedId)};\` : "";
-        const selectBg = selectedId ? \`background:\${colorForStaff(selectedId)};\` : "";
+        const bg = selectedId && !isBreak ? \`background:\${colorForStaff(selectedId)}; border-left:4px solid \${borderForStaff(selectedId)};\` : "";
+        const selectBg = selectedId && !isBreak ? \`background:\${colorForStaff(selectedId)};\` : "";
 
         let cellHtml = \`<td class="\${cls}" style="\${bg}">\`;
 
         if (isBreak) {
-          cellHtml += \`<select disabled><option>휴게</option></select>\`;
+          cellHtml += \`<select disabled><option>휴게(\${assignedPerson.name})</option></select>\`;
         } else {
           cellHtml += \`<select onchange="setAssignment('\${mode}', '\${slot}', '\${room.id}', this.value)" style="\${selectBg}">\`;
           cellHtml += \`<option value="">-</option>\`;
@@ -1381,10 +1397,9 @@ const legacyScript = `const rooms = [
       html += "</tr></thead><tbody>";
 
       slots.forEach(slot => {
-        const isBreak = isCommonBreak(mode, slot);
         html += \`<tr>\`;
         html += \`<td class="time-col freeze-col freeze-time">\${slot}</td>\`;
-        rooms.forEach(room => html += renderRoomCell(room, slot, isBreak));
+        rooms.forEach(room => html += renderRoomCell(room, slot));
         html += \`</tr>\`;
       });
 
@@ -1395,6 +1410,7 @@ const legacyScript = `const rooms = [
       document.getElementById("tabSaturday").classList.toggle("active", activeMode === "saturday");
       document.getElementById("weekdayControls").style.display = activeMode === "weekday" ? "flex" : "none";
 
+      renderStaffBreakPanel();
       renderRules();
       updateSummary();
     }
@@ -1407,11 +1423,12 @@ const legacyScript = `const rooms = [
 
     function buildData() {
       return {
-        version: 22,
+        version: 23,
         activeMode,
         staff,
         assignments,
         autoAssignOverrides,
+        staffBreakOverrides,
         settings: {
           startParity: document.getElementById("startParity").value
         }
@@ -1425,6 +1442,7 @@ const legacyScript = `const rooms = [
       staff = migrated.staff;
       assignments = migrated.assignments;
       autoAssignOverrides = migrated.autoAssignOverrides || {};
+      staffBreakOverrides = migrated.staffBreakOverrides || {};
 
       if (migrated.settings.startParity) {
         document.getElementById("startParity").value = migrated.settings.startParity;
@@ -1732,8 +1750,6 @@ const legacyScript = `const rooms = [
       try {
         await db.collection(DEFAULT_STAFF_COLLECTION).doc(DEFAULT_STAFF_DOCUMENT).set({
           staffList: staff,
-          saturdayCommonBreakStart: CONFIG.saturday.commonBreakStart,
-          saturdayCommonBreakEnd: CONFIG.saturday.commonBreakEnd,
           updatedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         showNotice("기본 담당자 설정이 클라우드에 저장되었습니다.", "info");
@@ -1775,17 +1791,11 @@ const legacyScript = `const rooms = [
           staffAutoAssignDefault: (s.staffAutoAssignDefault ?? s.staffAutoAssign) !== false,
           workStart: s.workStart || "10:00",
           workEnd: s.workEnd || "21:00",
-          breakStart: s.breakStart || "13:00",
-          breakEnd: s.breakEnd || "14:00"
+          breakStart: s.breakStart || "",
+          breakEnd: s.breakEnd || "",
+          satBreakStart: s.satBreakStart || "",
+          satBreakEnd: s.satBreakEnd || ""
         }));
-        if (loadedData.saturdayCommonBreakStart !== undefined) {
-          const s = loadedData.saturdayCommonBreakStart || null;
-          const e = loadedData.saturdayCommonBreakEnd || null;
-          CONFIG.saturday.commonBreakStart = s;
-          CONFIG.saturday.commonBreakEnd = e;
-          if (s && e) localStorage.setItem("roomScheduleSaturdayBreakConfig", JSON.stringify({ start: s, end: e }));
-          else localStorage.removeItem("roomScheduleSaturdayBreakConfig");
-        }
         cleanInvalidAssignments();
         renderStaff();
         renderTable();
@@ -1855,7 +1865,9 @@ const legacyScript = `const rooms = [
         workStart: s.workStart || "10:00",
         workEnd: s.workEnd || "21:00",
         breakStart: s.breakStart || "",
-        breakEnd: s.breakEnd || ""
+        breakEnd: s.breakEnd || "",
+        satBreakStart: s.satBreakStart || "",
+        satBreakEnd: s.satBreakEnd || ""
       }));
 
       return {
@@ -1863,13 +1875,14 @@ const legacyScript = `const rooms = [
         staff: migratedStaff,
         assignments: normalizeAssignments(rawData.assignments, migratedStaff),
         autoAssignOverrides: rawData.autoAssignOverrides || {},
+        staffBreakOverrides: rawData.staffBreakOverrides || {},
         settings: rawData.settings || {}
       };
     }
 
     function loadData(show = false) {
       const keys = [
-        "roomScheduleAppV22", "roomScheduleAppV14", "roomScheduleAppV13", "roomScheduleAppV12",
+        "roomScheduleAppV23", "roomScheduleAppV22", "roomScheduleAppV14", "roomScheduleAppV13", "roomScheduleAppV12",
         "roomScheduleAppV11", "roomScheduleAppV10", "roomScheduleAppV9", "roomScheduleAppV8",
         "roomScheduleAppV7", "roomScheduleAppV6", "roomScheduleAppV5", "roomScheduleAppV4",
         "roomScheduleAppV3", "roomScheduleAppV2", "roomScheduleApp"
@@ -1946,12 +1959,10 @@ const legacyScript = `const rooms = [
       document.getElementById("modalStaffAutoAssignDefault").checked = true;
       document.getElementById("modalWorkStart").value = "10:00";
       document.getElementById("modalWorkEnd").value = "21:00";
-      document.getElementById("modalBreakStart").value = "13:00";
-      document.getElementById("modalBreakEnd").value = "14:00";
-      const satBreakStartEl = document.getElementById("modalSatBreakStart");
-      const satBreakEndEl = document.getElementById("modalSatBreakEnd");
-      if (satBreakStartEl) satBreakStartEl.value = CONFIG.saturday.commonBreakStart || "";
-      if (satBreakEndEl) satBreakEndEl.value = CONFIG.saturday.commonBreakEnd || "";
+      document.getElementById("modalBreakStart").value = "";
+      document.getElementById("modalBreakEnd").value = "";
+      document.getElementById("modalPersonSatBreakStart").value = "";
+      document.getElementById("modalPersonSatBreakEnd").value = "";
       document.getElementById("defaultStaffFormTitle").textContent = "담당자 추가";
       document.getElementById("modalSaveStaffBtn").textContent = "담당자 추가";
       document.getElementById("modalCancelEditBtn").style.display = "none";
@@ -1981,11 +1992,14 @@ const legacyScript = `const rooms = [
       const workEnd = document.getElementById("modalWorkEnd").value;
       const breakStart = document.getElementById("modalBreakStart").value;
       const breakEnd = document.getElementById("modalBreakEnd").value;
+      const satBreakStart = document.getElementById("modalPersonSatBreakStart").value;
+      const satBreakEnd = document.getElementById("modalPersonSatBreakEnd").value;
 
       if (!name) { showModalNotice("담당자명을 입력해주세요.", "error"); return; }
       if (!worksWeekday && !worksSaturday) { showModalNotice("평일 또는 토요일 중 최소 1개를 선택해주세요.", "error"); return; }
       if (workStart && workEnd && toMin(workStart) >= toMin(workEnd)) { showModalNotice("근무 종료 시간은 근무 시작 시간보다 늦어야 합니다.", "error"); return; }
       if (breakStart && breakEnd && toMin(breakStart) >= toMin(breakEnd)) { showModalNotice("휴식 종료 시간은 휴식 시작 시간보다 늦어야 합니다.", "error"); return; }
+      if (satBreakStart && satBreakEnd && toMin(satBreakStart) >= toMin(satBreakEnd)) { showModalNotice("토요일 휴게 종료 시간은 시작 시간보다 늦어야 합니다.", "error"); return; }
 
       if (defaultStaffEditingId) {
         const target = staff.find(s => s.id === defaultStaffEditingId);
@@ -1999,10 +2013,12 @@ const legacyScript = `const rooms = [
           target.workEnd = workEnd;
           target.breakStart = breakStart;
           target.breakEnd = breakEnd;
+          target.satBreakStart = satBreakStart;
+          target.satBreakEnd = satBreakEnd;
           showModalNotice("담당자 정보가 수정되었습니다.", "info");
         }
       } else {
-        staff.push({ id: uid(), name, worksWeekday, worksSaturday, isActive, staffAutoAssignDefault, workStart, workEnd, breakStart, breakEnd });
+        staff.push({ id: uid(), name, worksWeekday, worksSaturday, isActive, staffAutoAssignDefault, workStart, workEnd, breakStart, breakEnd, satBreakStart, satBreakEnd });
         showModalNotice("담당자가 추가되었습니다.", "info");
       }
 
@@ -2027,6 +2043,8 @@ const legacyScript = `const rooms = [
       document.getElementById("modalWorkEnd").value = target.workEnd || "21:00";
       document.getElementById("modalBreakStart").value = target.breakStart || "";
       document.getElementById("modalBreakEnd").value = target.breakEnd || "";
+      document.getElementById("modalPersonSatBreakStart").value = target.satBreakStart || "";
+      document.getElementById("modalPersonSatBreakEnd").value = target.satBreakEnd || "";
       document.getElementById("defaultStaffFormTitle").textContent = "담당자 수정";
       document.getElementById("modalSaveStaffBtn").textContent = "수정 저장";
       document.getElementById("modalCancelEditBtn").style.display = "inline-block";
@@ -2038,36 +2056,87 @@ const legacyScript = `const rooms = [
       modalResetForm();
     }
 
-    async function saveSaturdayBreakSetting() {
-      const start = document.getElementById("modalSatBreakStart").value;
-      const end = document.getElementById("modalSatBreakEnd").value;
-      if (!start || !end) { showModalNotice("휴게 시간을 입력해주세요.", "error"); return; }
-      if (toMin(start) >= toMin(end)) { showModalNotice("종료 시간은 시작 시간보다 늦어야 합니다.", "error"); return; }
-      CONFIG.saturday.commonBreakStart = start;
-      CONFIG.saturday.commonBreakEnd = end;
-      localStorage.setItem("roomScheduleSaturdayBreakConfig", JSON.stringify({ start, end }));
-      cleanInvalidAssignments();
-      renderTable();
-      saveData(false);
-      saveToCloud(false);
-      await saveDefaultStaffToCloud();
-      showModalNotice(\`토요일 공통 휴게가 \${start}~\${end}으로 적용되었습니다.\`, "info");
+    function renderStaffBreakPanel() {
+      const panel = document.getElementById("staffBreakPanel");
+      if (!panel) return;
+      const activeStaff = staff.filter(s => s.isActive !== false && (
+        (activeMode === "weekday" && s.worksWeekday !== false) ||
+        (activeMode === "saturday" && s.worksSaturday !== false)
+      ));
+      if (activeStaff.length === 0) { panel.innerHTML = ""; return; }
+      let html = \`<div class="staff-break-panel-inner"><span class="staff-break-panel-title">담당자 휴게 현황</span>\`;
+      activeStaff.forEach(person => {
+        const eff = getEffectiveBreak(activeMode, person);
+        const hasBreak = eff.breakStart && eff.breakEnd;
+        const hasOverride = !!staffBreakOverrides[person.id];
+        const breakLabel = hasBreak ? \`\${eff.breakStart}~\${eff.breakEnd}\` : "(휴게없음)";
+        html += \`<div class="staff-break-card\${hasOverride ? " override-active" : ""}" onclick="openDailyBreakModal('\${person.id}')">
+          <span class="staff-break-name">\${person.name}</span>
+          <span class="staff-break-time">\${breakLabel}\${hasOverride ? " ★" : ""}</span>
+        </div>\`;
+      });
+      html += \`</div>\`;
+      panel.innerHTML = html;
     }
 
-    async function clearSaturdayBreakSetting() {
-      CONFIG.saturday.commonBreakStart = null;
-      CONFIG.saturday.commonBreakEnd = null;
-      localStorage.removeItem("roomScheduleSaturdayBreakConfig");
-      const satBreakStartEl = document.getElementById("modalSatBreakStart");
-      const satBreakEndEl = document.getElementById("modalSatBreakEnd");
-      if (satBreakStartEl) satBreakStartEl.value = "";
-      if (satBreakEndEl) satBreakEndEl.value = "";
+    function openDailyBreakModal(staffId) {
+      const person = staff.find(s => s.id === staffId);
+      if (!person) return;
+      currentDailyBreakModalStaffId = staffId;
+      const defaultBs = activeMode === "saturday" ? (person.satBreakStart || "") : (person.breakStart || "");
+      const defaultBe = activeMode === "saturday" ? (person.satBreakEnd || "") : (person.breakEnd || "");
+      const override = staffBreakOverrides[staffId];
+      document.getElementById("dailyBreakModalTitle").textContent = \`\${person.name} — \${selectedScheduleDate} 휴게 시간\`;
+      document.getElementById("dailyBreakDefaultInfo").textContent = defaultBs && defaultBe ? \`기본값: \${defaultBs}~\${defaultBe}\` : "기본값: 없음";
+      document.getElementById("dailyBreakStart").value = override ? override.breakStart : defaultBs;
+      document.getElementById("dailyBreakEnd").value = override ? override.breakEnd : defaultBe;
+      const notice = document.getElementById("dailyBreakNotice");
+      if (notice) { notice.textContent = ""; notice.className = "notice"; notice.style.display = "none"; }
+      document.getElementById("dailyBreakModal").style.display = "flex";
+    }
+
+    function saveDailyBreakOverride() {
+      const staffId = currentDailyBreakModalStaffId;
+      if (!staffId) return;
+      const start = document.getElementById("dailyBreakStart").value;
+      const end = document.getElementById("dailyBreakEnd").value;
+      if (!start || !end) { showDailyBreakNotice("휴게 시간을 입력해주세요.", "error"); return; }
+      if (toMin(start) >= toMin(end)) { showDailyBreakNotice("종료 시간은 시작 시간보다 늦어야 합니다.", "error"); return; }
+      staffBreakOverrides[staffId] = { breakStart: start, breakEnd: end };
       cleanInvalidAssignments();
       renderTable();
       saveData(false);
       saveToCloud(false);
-      await saveDefaultStaffToCloud();
-      showModalNotice("토요일 공통 휴게가 해제되었습니다. 모든 시간대 배정이 가능합니다.", "info");
+      closeDailyBreakModal();
+    }
+
+    function clearDailyBreakOverride() {
+      const staffId = currentDailyBreakModalStaffId;
+      if (!staffId) return;
+      delete staffBreakOverrides[staffId];
+      cleanInvalidAssignments();
+      renderTable();
+      saveData(false);
+      saveToCloud(false);
+      closeDailyBreakModal();
+    }
+
+    function closeDailyBreakModal() {
+      const modal = document.getElementById("dailyBreakModal");
+      if (modal) modal.style.display = "none";
+      currentDailyBreakModalStaffId = null;
+    }
+
+    function handleDailyBreakModalOverlay(event) {
+      if (event.target === event.currentTarget) closeDailyBreakModal();
+    }
+
+    function showDailyBreakNotice(message, type = "info") {
+      const el = document.getElementById("dailyBreakNotice");
+      if (!el) return;
+      el.textContent = message;
+      el.className = \`notice \${type}\`;
+      el.style.display = "block";
     }
 
     function modalRemoveStaff(id) {
@@ -2260,13 +2329,6 @@ const legacyScript = `const rooms = [
       setupAuthScreen();
       localStorage.removeItem(CLOUD_AUTH_KEY);
       loadFirebaseSettings();
-      try {
-        const savedBreak = JSON.parse(localStorage.getItem("roomScheduleSaturdayBreakConfig") || "null");
-        if (savedBreak && savedBreak.start && savedBreak.end) {
-          CONFIG.saturday.commonBreakStart = savedBreak.start;
-          CONFIG.saturday.commonBreakEnd = savedBreak.end;
-        }
-      } catch(e) {}
       renderScheduleCalendar();
       loadData(false);
       setAppLocked(true);
@@ -2311,8 +2373,11 @@ const legacyScript = `const rooms = [
       modalRemoveStaff,
       loadDefaultStaffFromCloudInModal,
       saveDefaultStaffToCloudFromModal,
-      saveSaturdayBreakSetting,
-      clearSaturdayBreakSetting,
+      openDailyBreakModal,
+      saveDailyBreakOverride,
+      clearDailyBreakOverride,
+      closeDailyBreakModal,
+      handleDailyBreakModalOverlay,
       init: initApp
     };
     initApp();`
