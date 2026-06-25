@@ -1412,8 +1412,6 @@ const legacyScript = `const rooms = [
         staff,
         assignments,
         autoAssignOverrides,
-        saturdayCommonBreakStart: CONFIG.saturday.commonBreakStart,
-        saturdayCommonBreakEnd: CONFIG.saturday.commonBreakEnd,
         settings: {
           startParity: document.getElementById("startParity").value
         }
@@ -1422,9 +1420,6 @@ const legacyScript = `const rooms = [
 
     function applyData(rawData) {
       const migrated = migrateData(rawData);
-
-      if (rawData.saturdayCommonBreakStart !== undefined) CONFIG.saturday.commonBreakStart = rawData.saturdayCommonBreakStart || null;
-      if (rawData.saturdayCommonBreakEnd !== undefined) CONFIG.saturday.commonBreakEnd = rawData.saturdayCommonBreakEnd || null;
 
       activeMode = migrated.activeMode === "saturday" ? "saturday" : "weekday";
       staff = migrated.staff;
@@ -1783,8 +1778,14 @@ const legacyScript = `const rooms = [
           breakStart: s.breakStart || "13:00",
           breakEnd: s.breakEnd || "14:00"
         }));
-        if (loadedData.saturdayCommonBreakStart !== undefined) CONFIG.saturday.commonBreakStart = loadedData.saturdayCommonBreakStart || null;
-        if (loadedData.saturdayCommonBreakEnd !== undefined) CONFIG.saturday.commonBreakEnd = loadedData.saturdayCommonBreakEnd || null;
+        if (loadedData.saturdayCommonBreakStart !== undefined) {
+          const s = loadedData.saturdayCommonBreakStart || null;
+          const e = loadedData.saturdayCommonBreakEnd || null;
+          CONFIG.saturday.commonBreakStart = s;
+          CONFIG.saturday.commonBreakEnd = e;
+          if (s && e) localStorage.setItem("roomScheduleSaturdayBreakConfig", JSON.stringify({ start: s, end: e }));
+          else localStorage.removeItem("roomScheduleSaturdayBreakConfig");
+        }
         cleanInvalidAssignments();
         renderStaff();
         renderTable();
@@ -2044,6 +2045,7 @@ const legacyScript = `const rooms = [
       if (toMin(start) >= toMin(end)) { showModalNotice("종료 시간은 시작 시간보다 늦어야 합니다.", "error"); return; }
       CONFIG.saturday.commonBreakStart = start;
       CONFIG.saturday.commonBreakEnd = end;
+      localStorage.setItem("roomScheduleSaturdayBreakConfig", JSON.stringify({ start, end }));
       cleanInvalidAssignments();
       renderTable();
       saveData(false);
@@ -2054,6 +2056,7 @@ const legacyScript = `const rooms = [
     function clearSaturdayBreakSetting() {
       CONFIG.saturday.commonBreakStart = null;
       CONFIG.saturday.commonBreakEnd = null;
+      localStorage.removeItem("roomScheduleSaturdayBreakConfig");
       const satBreakStartEl = document.getElementById("modalSatBreakStart");
       const satBreakEndEl = document.getElementById("modalSatBreakEnd");
       if (satBreakStartEl) satBreakStartEl.value = "";
@@ -2255,6 +2258,13 @@ const legacyScript = `const rooms = [
       setupAuthScreen();
       localStorage.removeItem(CLOUD_AUTH_KEY);
       loadFirebaseSettings();
+      try {
+        const savedBreak = JSON.parse(localStorage.getItem("roomScheduleSaturdayBreakConfig") || "null");
+        if (savedBreak && savedBreak.start && savedBreak.end) {
+          CONFIG.saturday.commonBreakStart = savedBreak.start;
+          CONFIG.saturday.commonBreakEnd = savedBreak.end;
+        }
+      } catch(e) {}
       renderScheduleCalendar();
       loadData(false);
       setAppLocked(true);
