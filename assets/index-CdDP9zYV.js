@@ -81,7 +81,7 @@ Error generating stack: `+e.message+`
       <div id="staffList" class="staff-list"></div>
 
       <p class="help">
-        담당자별로 평일 근무자와 토요일 근무자를 구분할 수 있습니다. 평일은 담당자별 평일 근무/휴식 시간을 기준으로 배정하고, 토요일은 토요일 근무자로 체크된 담당자만 10:00~19:00 전체 영업시간 기준으로 배정됩니다. 토요일 13:00~14:00은 공통 휴게 시간입니다.
+        담당자별로 평일 근무자와 토요일 근무자를 구분할 수 있습니다. 평일은 담당자별 평일 근무/휴식 시간을 기준으로 배정하고, 토요일은 토요일 근무자로 체크된 담당자만 10:00~19:00 전체 영업시간 기준으로 배정됩니다.
       </p>
 
       <details class="firebase-settings">
@@ -2036,7 +2036,7 @@ Error generating stack: `+e.message+`
       modalResetForm();
     }
 
-    function saveSaturdayBreakSetting() {
+    async function saveSaturdayBreakSetting() {
       const start = document.getElementById("modalSatBreakStart").value;
       const end = document.getElementById("modalSatBreakEnd").value;
       if (!start || !end) { showModalNotice("휴게 시간을 입력해주세요.", "error"); return; }
@@ -2048,10 +2048,11 @@ Error generating stack: `+e.message+`
       renderTable();
       saveData(false);
       saveToCloud(false);
+      await saveDefaultStaffToCloud();
       showModalNotice(\`토요일 공통 휴게가 \${start}~\${end}으로 적용되었습니다.\`, "info");
     }
 
-    function clearSaturdayBreakSetting() {
+    async function clearSaturdayBreakSetting() {
       CONFIG.saturday.commonBreakStart = null;
       CONFIG.saturday.commonBreakEnd = null;
       localStorage.removeItem("roomScheduleSaturdayBreakConfig");
@@ -2063,6 +2064,7 @@ Error generating stack: `+e.message+`
       renderTable();
       saveData(false);
       saveToCloud(false);
+      await saveDefaultStaffToCloud();
       showModalNotice("토요일 공통 휴게가 해제되었습니다. 모든 시간대 배정이 가능합니다.", "info");
     }
 
